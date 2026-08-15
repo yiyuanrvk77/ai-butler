@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>角色房间 · 玩法演示</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    background: #141726;
+    color: #efe9de;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+  #room { width: min(100%, 480px); min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+  /* 房间背景 */
+  #room::before {
+    content: "";
+    position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(ellipse at 50% 20%, #3b4368 0%, #262b47 45%, #171a2c 100%);
+  }
+  #wall {
+    position: relative;
+    height: 150px;
+    padding: 16px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 10px;
+    background:
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 26px 26px;
+    border-bottom: 3px solid #343a5c;
+  }
+  .note {
+    width: 88px;
+    padding: 8px 7px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    color: #4a3f2f;
+    box-shadow: 0 3px 8px rgba(0,0,0,.35);
+    animation: drop .5s ease;
+    user-select: none;
+    transform: rotate(var(--rot, -2deg));
+  }
+  @keyframes drop { from { transform: translateY(-14px) rotate(0deg); opacity: 0; } }
+
+  /* 场景（角色 + 家具） */
+  #scene {
+    position: relative;
+    flex: 1;
+    min-height: 220px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    background:
+      linear-gradient(180deg, transparent 62%, rgba(0,0,0,.28) 62%),
+      radial-gradient(ellipse at 50% 78%, #4a3f5e 0%, transparent 62%);
+  }
+  #avatarWrap { position: relative; margin-bottom: 26px; }
+  #aura {
+    position: absolute; inset: -18px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--aura) 0%, transparent 70%);
+    opacity: .55;
+    filter: blur(2px);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe { 50% { transform: scale(1.12); opacity: .75; } }
+  #avatar {
+    position: relative;
+    width: 104px; height: 104px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 62px;
+    background: linear-gradient(160deg, #f4ede2, #d9cfc0);
+    border-radius: 50%;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 -6px 14px rgba(0,0,0,.15);
+    animation: bob 3.2s ease-in-out infinite;
+    transition: transform .3s;
+  }
+  @keyframes bob { 50% { transform: translateY(-5px); } }
+  #furniture { position: absolute; bottom: 6px; left: 0; right: 0; display: flex; justify-content: space-around; font-size: 30px; opacity: .85; pointer-events: none; }
+
+  /* 顶部信息 */
+  #hud {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.05);
+    border-top: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  #who { flex: 1; min-width: 0; }
+  #who b { font-size: 18px; display: block; }
+  #moodWord { font-size: 12.5px; color: #b9b2c8; }
+  #affinity { flex: 1.4; min-width: 0; }
+  #affLabel { display: block; font-size: 12px; color: #b9b2c8; margin-bottom: 3px; }
+  #affBar { height: 9px; border-radius: 6px; background: rgba(255,255,255,.12); overflow: hidden; }
+  #affFill { height: 100%; width: 20%; border-radius: 6px; background: linear-gradient(90deg, #ff9a8b, #ff6a88); transition: width .7s ease; }
+  #days { text-align: right; font-size: 12.5px; color: #b9b2c8; flex: none; }
+  #days b { color: #ffd166; font-size: 16px; }
+
+  /* 对话舞台 */
+  #stage {
+    display: flex;
+    flex-direction: column;
+    min-height: 270px;
+    background: rgba(20,22,38,.72);
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+  #log { flex: 1; max-height: 300px; overflow-y: auto; padding: 14px 16px 6px; display: flex; flex-direction: column; gap: 9px; }
+  .line { max-width: 86%; padding: 9px 13px; border-radius: 14px; font-size: 14.5px; line-height: 1.6; word-break: break-word; }
+  .line.them { align-self: flex-start; background: #3a4063; color: #f1ede2; border-bottom-left-radius: 4px; }
+  .line.me { align-self: flex-end; background: #e8865a; color: #fff; border-bottom-right-radius: 4px; }
+  .line.typing { align-self: flex-start; color: #a49faf; font-style: italic; background: transparent; padding: 4px 2px; }
+  .line .tiny { display: block; font-size: 10.5px; color: #8d88a0; margin-top: 3px; }
+  #choices { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 10px; }
+  #choices button {
+    border: 1px solid rgba(232,134,90,.6);
+    background: rgba(232,134,90,.12);
+    color: #ffc9a8;
+    border-radius: 16px;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  #choices button:hover { background: rgba(232,134,90,.28); }
+  #composer { display: flex; gap: 8px; padding: 10px 14px 16px; }
+  #input {
+    flex: 1;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.14);
+    color: #f1ede2;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 14.5px;
+    outline: none;
+  }
+  #input::placeholder { color: #8d88a0; }
+  #input:focus { border-color: #e8865a; }
+  #send {
+    background: #e8865a;
+    color: #fff;
+    border: 0;
+    border-radius: 12px;
+    padding: 0 22px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  #caption { text-align: center; font-size: 11.5px; color: #8d88a0; padding: 8px 12px 0; }
+
+  #toast {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 26px;
+    background: #fff;
+    color: #4a3f2f;
+    border-radius: 10px;
+    padding: 9px 18px;
+    font-size: 13.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    opacity: 0;
+    transition: opacity .25s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="room">
+  <p id="caption">💡 玩法演示：Ta 有表情、有心情、有好感度，会记住你，还会主动找你说话</p>
+  <div id="wall"></div>
+  <div id="scene">
+    <div id="avatarWrap">
+      <div id="aura"></div>
+      <div id="avatar">🙂</div>
+    </div>
+    <div id="furniture"><span>🛋️</span><span>🪴</span><span>🖼️</span><span>🕯️</span><span>🐱</span></div>
+  </div>
+  <div id="hud">
+    <div id="who"><b>小满</b><span id="moodWord">心情不错</span></div>
+    <div id="affinity"><span id="affLabel">初识</span><div id="affBar"><div id="affFill"></div></div></div>
+    <div id="days">认识 <b id="dayNum">1</b> 天</div>
+  </div>
+  <div id="stage">
+    <div id="log"></div>
+    <div id="choices"></div>
+    <div id="composer">
+      <input id="input" placeholder="跟 Ta 说点什么…">
+      <button id="send">发送</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============ 状态（存浏览器本地，关掉再开还记得） ============ */
+const LS = 'room-demo-v1';
+function load() {
+  try { return JSON.parse(localStorage.getItem(LS)); } catch (e) { return null; }
+}
+let S = load() || {
+  mood: 'neutral', aff: 20, notes: [], first: Date.now(), greeted: false, msgs: 0
+};
+function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+
+/* ============ 心情系统 ============ */
+const MOODS = {
+  happy:   { emoji: '😊', word: '心情超好',   aura: '#ffd166' },
+  love:    { emoji: '😍', word: '心里暖暖的', aura: '#ff7eb3' },
+  shy:     { emoji: '😳', word: '害羞了',     aura: '#ff9a8b' },
+  sad:     { emoji: '😢', word: '有点难过',   aura: '#8fb8ff' },
+  angry:   { emoji: '😠', word: '在闹别扭',   aura: '#ff6b6b' },
+  neutral: { emoji: '🙂', word: '心情不错',   aura: '#b8a6ff' }
+};
+
+function detectMood(text) {
+  if (/讨厌|生气|滚|烦死|走开|别烦/.test(text)) return 'angry';
+  if (/难过|伤心|哭|累|疼|痛|失眠|压力|孤单|不舒服|生病/.test(text)) return 'sad';
+  if (/爱你|喜欢你|抱抱|亲亲|想你了|好想你/.test(text)) return 'love';
+  if (/害羞|脸红|讨厌啦|哎哟/.test(text)) return 'shy';
+  if (/开心|高兴|喜欢|谢谢|好棒|哈哈|真好|夸夸/.test(text)) return 'happy';
+  return S.mood;
+}
+
+function applyMood(mood) {
+  S.mood = mood;
+  const m = MOODS[mood];
+  $('#avatar').textContent = m.emoji;
+  $('#moodWord').textContent = m.word;
+  $('#aura').style.setProperty('--aura', m.aura);
+  $('#aura').style.background = 'radial-gradient(circle, ' + m.aura + ' 0%, transparent 70%)';
+  save();
+}
+
+/* ============ 好感度 ============ */
+const LEVELS = [
+  [0, '初识'], [20, '眼熟'], [40, '朋友'], [60, '知己'], [80, '挚友'], [95, '心里有你']
+];
+function levelName(aff) {
+  let name = LEVELS[0][1];
+  for (const [min, n] of LEVELS) if (aff >= min) name = n;
+  return name;
+}
+function changeAff(delta) {
+  const before = levelName(S.aff);
+  S.aff = Math.max(0, Math.min(100, S.aff + delta));
+  const after = levelName(S.aff);
+  $('#affFill').style.width = S.aff + '%';
+  $('#affLabel').textContent = after;
+  if (before !== after) {
+    toast('关系升级了：' + after + ' 🎉');
+    sayLater('……我总觉得，我们好像更亲近了一点。');
+  }
+  save();
+}
+
+/* ============ 记忆便签 ============ */
+const NOTE_COLORS = ['#ffd6a5', '#b8f2e6', '#c8b6ff', '#ffb3c6', '#fdffb6'];
+function addNote(text, emoji) {
+  S.notes.push({
+    text: text,
+    emoji: emoji || '',
+    rot: (Math.random() * 8 - 4).toFixed(1) + 'deg',
+    color: NOTE_COLORS[S.notes.length % NOTE_COLORS.length]
+  });
+  if (S.notes.length > 9) S.notes.shift();
+  save();
+  renderNotes();
+  toast('Ta 把这件事记在了墙上 📌');
+}
+
+function renderNotes() {
+  const wall = $('#wall');
+  wall.innerHTML = '';
+  if (!S.notes.length) {
+    S.notes.push({ text: '认识的第 1 天', emoji: '✨', rot: '-2deg', color: NOTE_COLORS[0] });
+    save();
+  }
+  S.notes.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'note';
+    d.style.background = n.color;
+    d.style.setProperty('--rot', n.rot);
+    d.textContent = (n.emoji ? n.emoji + ' ' : '') + n.text;
+    wall.appendChild(d);
+  });
+}
+
+function extractNote(text) {
+  let m = text.match(/我(?:最喜欢|喜欢)(?:喝|吃)?\s*(.{1,12})/);
+  if (m) return addNote('Ta 喜欢 ' + m[1], '❤️');
+  m = text.match(/我(?:最爱|爱)(?:喝|吃)?\s*(.{1,12})/);
+  if (m) return addNote('Ta 爱 ' + m[1], '💕');
+  m = text.match(/我(?:讨厌|不喜欢)(?:喝|吃)?\s*(.{1,12})/);
+  if (m) return addNote('Ta 不喜欢 ' + m[1], '✖️');
+  m = text.match(/我(?:叫|的名字是)\s*([\u4e00-\u9fa5A-Za-z]{1,8})/);
+  if (m) return addNote('Ta 叫 ' + m[1], '👤');
+  m = text.match(/生日是\s*(\d{1,2}月\d{1,2}日)/);
+  if (m) return addNote('Ta 的生日 ' + m[1], '🎂');
+}
+
+/* ============ 对话 ============ */
+let busy = false;
+let idleTimer = null;
+
+function $(id) { return document.getElementById(id); }
+
+function appendLine(who, text, withTime) {
+  const d = document.createElement('div');
+  d.className = 'line ' + who;
+  d.textContent = text;
+  if (withTime) {
+    const t = document.createElement('span');
+    t.className = 'tiny';
+    const now = new Date();
+    t.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+    d.appendChild(t);
+  }
+  $('#log').appendChild(d);
+  $('#log').scrollTop = $('#log').scrollHeight;
+  return d;
+}
+
+function typeLine(text) {
+  return new Promise(resolve => {
+    const d = document.createElement('div');
+    d.className = 'line them';
+    $('#log').appendChild(d);
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 2;
+      d.textContent = text.slice(0, i);
+      $('#log').scrollTop = $('#log').scrollHeight;
+      if (i >= text.length) { clearInterval(timer); resolve(); }
+    }, 34);
+  });
+}
+
+function sayLater(text) {
+  setTimeout(async () => {
+    if (busy) return;
+    busy = true;
+    const t = appendLine('them', '…');
+    t.textContent = '正在输入…';
+    await sleep(700 + Math.random() * 900);
+    t.remove();
+    await typeLine(text);
+    busy = false;
+    resetIdle();
+  }, 2600);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ============ 回复 ============ */
+function choicesFor(text) {
+  if (/难过|累|压力|心情/.test(text)) return ['抱抱我 🤗', '陪我聊聊天', '给我讲个笑话'];
+  if (/药/.test(text)) return ['好，我这就去吃 💊', '再等十分钟 ⏰'];
+  if (/饿|吃|饭/.test(text)) return ['煮碗面给你 🍜', '点个外卖 🛵', '先喝杯热水 ☕'];
+  if (/开心|哈哈|好棒/.test(text)) return ['那今天一起庆祝！🎉', '我也好开心 😊', '再讲一件开心的事'];
+  if (/想你了|想你/.test(text)) return ['我也想你 💕', '那我们待久一点', '明天也要来见我哦'];
+  return ['今天想你了 💭', '给我讲讲你的一天', '我们一起做点什么吧'];
+}
+
+function replyFor(text, mood) {
+  if (/药/.test(text)) return '到点啦，记得吃药哦。吃完跟我说一声，我帮你记着 📝';
+  if (/绿茶|茶/.test(text)) return '我记得你喜欢喝绿茶——我今天也泡了一杯 🍵';
+  if (/记(住|着)/.test(text)) return '好～你说的话，我都记在墙上了 📌';
+  const r = {
+    happy: ['嘿嘿，你开心我就开心～', '真好！那我今天也要开开心心的 ✨', '被你传染了，我现在心情超好 😊'],
+    love: ['我……我也是！今天更更喜欢你了 💕', '被你这么说，我心跳都加快了……', '那你以后每天都要跟我说 🥺'],
+    shy: ['你、你突然这么说，我有点害羞啦 😳', '（脸红了）不许这样看着我！'],
+    sad: ['我在呢，别难过。要不要我陪你待一会儿？', '过来，先给你一个抱抱 🫂', '慢慢说，我听着，一件一件来'],
+    angry: ['哼……我知道错了还不行嘛，你别生气', '（小声）那我下次不这样了……', '好啦好啦，我哄你开心还不行吗'],
+    neutral: ['嗯嗯，我在听', '然后呢？我想听你继续说', '好呀，那我们一起']
+  };
+  const list = r[mood] || r.neutral;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/* ============ 发送 ============ */
+async function send(raw) {
+  const text = raw.trim();
+  if (!text || busy) return;
+  busy = true;
+  S.msgs++;
+  appendLine('me', text, true);
+  extractNote(text);
+
+  const mood = detectMood(text);
+  applyMood(mood);
+  const delta = mood === 'love' ? 5 : mood === 'happy' ? 4 : mood === 'neutral' ? 2 : mood === 'shy' ? 3 : -4;
+  changeAff(delta);
+
+  const t = appendLine('them', '正在输入…');
+  await sleep(700 + Math.random() * 900);
+  t.remove();
+  await typeLine(replyFor(text, mood));
+  busy = false;
+  save();
+  renderChoices(text);
+  resetIdle();
+}
+
+function renderChoices(text) {
+  const box = $('#choices');
+  box.innerHTML = '';
+  choicesFor(text).forEach(c => {
+    const b = document.createElement('button');
+    b.textContent = c;
+    b.addEventListener('click', () => {
+      box.innerHTML = '';
+      $('#input').value = '';
+      send(c.replace(/\s+[^\s]+$/, '')); // 去掉选项末尾 emoji 再发
+    });
+    box.appendChild(b);
+  });
+}
+
+/* ============ 主动说话 ============ */
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (busy) return;
+    const mem = S.notes.filter(n => n.text.startsWith('Ta 喜欢') || n.text.startsWith('Ta 爱'));
+    if (mem.length) {
+      const n = mem[Math.floor(Math.random() * mem.length)];
+      sayLater('对了，' + n.text.replace('Ta ', '你说过你') + '——我还记得呢 ✨');
+    } else {
+      sayLater('你在干嘛呢……我有点想你了');
+    }
+  }, 40000);
+}
+
+/* ============ 天数 & 初始化 ============ */
+function renderDays() {
+  $('#dayNum').textContent = Math.max(1, Math.floor((Date.now() - S.first) / 86400000) + 1);
+}
+
+function init() {
+  renderNotes();
+  renderDays();
+  applyMood(S.mood);
+  $('#affFill').style.width = S.aff + '%';
+  $('#affLabel').textContent = levelName(S.aff);
+  if (!S.greeted) {
+    S.greeted = true;
+    save();
+    setTimeout(async () => {
+      await typeLine('你来啦～我等你好久了。今天过得怎么样？');
+      renderChoices('今天过得怎么样');
+      resetIdle();
+    }, 600);
+  } else {
+    setTimeout(async () => {
+      await typeLine('你回来啦。我一直在这等你呢 🏠');
+      resetIdle();
+    }, 400);
+  }
+  $('#send').addEventListener('click', () => {
+    const v = $('#input').value;
+    $('#input').value = '';
+    send(v);
+  });
+  $('#input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const v = $('#input').value;
+      $('#input').value = '';
+      send(v);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

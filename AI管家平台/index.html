@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 管家 · 平台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 登录 / 注册 -->
+<div id="authView">
+  <div class="auth-card">
+    <div class="auth-logo">🏠</div>
+    <h1>AI 管家</h1>
+    <p class="auth-sub">每个人的专属管家 · 记住你的每一件小事</p>
+    <div id="loginForm">
+      <input id="loginUser" placeholder="用户名" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="密码" autocomplete="current-password">
+      <button class="btn-primary" id="loginBtn">登录</button>
+      <p class="auth-switch">还没有账号？<a href="#" id="toReg">注册一个</a></p>
+    </div>
+    <div id="regForm" hidden>
+      <input id="regUser" placeholder="用户名（2-20位）" autocomplete="username">
+      <input id="regPass" type="password" placeholder="密码（至少6位）" autocomplete="new-password">
+      <input id="regName" placeholder="怎么称呼你（可选）">
+      <select id="regAge">
+        <option value="adult" selected>我是中年人（情感寄托 / 家庭秘书）</option>
+        <option value="youth">我是年轻人（AI 朋友 / 对象 / 偶像）</option>
+        <option value="elder">我是长辈（健康管家）</option>
+        <option value="child">给孩子用（知心哥哥 / 姐姐）</option>
+      </select>
+      <button class="btn-primary" id="regBtn">注册并登录</button>
+      <p class="auth-switch">已有账号？<a href="#" id="toLogin">去登录</a></p>
+    </div>
+    <p id="authMsg" class="auth-msg"></p>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="mainView" hidden>
+  <aside class="sidebar">
+    <div class="side-head"><span>🏠</span><b>AI 管家</b></div>
+    <div class="me-row"><span id="meName"></span><button id="logoutBtn" class="mini-btn">退出</button></div>
+    <div class="side-title">👨‍👩‍👧‍👦 家人</div>
+    <div id="memberChips"></div>
+    <button id="addMemberBtn" class="mini-btn side-add">＋ 添加家人</button>
+    <div class="side-title">我的角色</div>
+    <div id="personaFilter"></div>
+    <div id="personaList"></div>
+    <button id="newPersonaBtn" class="btn-ghost side-btn">＋ 新建角色</button>
+  </aside>
+
+  <section class="content">
+    <header class="content-head">
+      <div class="p-title">
+        <span id="personaAvatar" class="p-avatar"></span>
+        <h2 id="personaTitle"></h2>
+      </div>
+      <div class="tabs">
+        <button data-tab="chat" class="on">💬 聊天</button>
+        <button data-tab="mem">📖 记忆</button>
+        <button data-tab="meds">💊 提醒</button>
+        <button data-tab="today">📋 今日</button>
+      </div>
+    </header>
+
+    <div class="view" id="viewChat">
+      <div id="msgs"></div>
+      <div id="chips"></div>
+      <div class="composer">
+        <input id="chatInput" type="text" placeholder="和管家说点什么…" autocomplete="off">
+        <button id="sendBtn">发送</button>
+      </div>
+    </div>
+
+    <div class="view" id="viewMem" hidden>
+      <div id="memList"></div>
+      <div class="mem-add">
+        <input id="memInput" placeholder="比如：我喜欢喝绿茶">
+        <button id="memAddBtn" class="btn-primary">记下</button>
+      </div>
+      <p class="hint">聊天时直接说"我喜欢…"，管家也会自动记住。</p>
+    </div>
+
+    <div class="view" id="viewMeds" hidden>
+      <div id="nextDose"></div>
+      <div class="med-form">
+        <input id="medName" placeholder="药名，如：阿司匹林">
+        <input id="medDose" placeholder="用量，如：1片">
+        <input id="medTimes" placeholder="时间，如：08:00, 12:30, 18:30">
+        <input id="medNote" placeholder="备注（可选），如：饭后吃">
+        <button id="medSaveBtn" class="btn-primary">保存药品</button>
+      </div>
+      <div id="medList"></div>
+    </div>
+
+    <div class="view" id="viewToday" hidden>
+      <div id="dailySummary"></div>
+      <div id="healthChart"></div>
+    </div>
+  </section>
+</div>
+
+<!-- 添加家人 -->
+<div class="modal-mask" id="memberModal">
+  <div class="modal">
+    <h2>添加家人</h2>
+    <label>称呼</label>
+    <input id="mmName" placeholder="如：爸爸 / 爷爷 / 小宝">
+    <label>关系（可选）</label>
+    <input id="mmRelation" placeholder="如：爸爸、爷爷、孩子">
+    <label>头像（一个 emoji）</label>
+    <input id="mmAvatar" placeholder="如：👴">
+    <label>界面模式</label>
+    <select id="mmMode">
+      <option value="adult">标准</option>
+      <option value="elder">长辈（大字）</option>
+      <option value="child">儿童（简单）</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="mmCancel">取消</button>
+      <button class="btn-primary" id="mmSave">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新建角色 -->
+<div class="modal-mask" id="personaModal">
+  <div class="modal">
+    <h2>新建角色</h2>
+    <label>角色名字</label>
+    <input id="pName" placeholder="如：暖心管家">
+    <label>头像（一个 emoji）</label>
+    <input id="pAvatar" placeholder="如：🤖">
+    <label>主题色</label>
+    <input id="pColor" type="color" value="#e8865a">
+    <label>性格设定（越具体越像，比如说话风格、称呼、禁忌）</label>
+    <textarea id="pPrompt" rows="4" placeholder="比如：你是温柔贴心的管家，说话简短亲切，记得对方的小习惯…"></textarea>
+    <label>适合人群</label>
+    <select id="pAudience">
+      <option value="all">通用</option>
+      <option value="child">儿童</option>
+      <option value="youth">年轻人</option>
+      <option value="adult">中年人</option>
+      <option value="elder">长辈</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="pCancel">取消</button>
+      <button class="btn-primary" id="pSave">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 到点提醒 -->
+<div id="reminderBanner" hidden>
+  <div class="rb-head">💊 该吃药啦</div>
+  <p id="reminderText"></p>
+  <div class="rb-actions">
+    <button id="rbOk">我吃过了</button>
+    <button id="rbLater">稍后再说</button>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

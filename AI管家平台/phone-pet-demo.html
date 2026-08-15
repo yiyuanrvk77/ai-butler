@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>手机陪伴 · 玩法演示</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    background: #101322;
+    color: #efe9de;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+  #app { width: min(100%, 430px); min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    background: #1d2136;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    font-size: 14px;
+  }
+  #modeTabs { display: flex; gap: 6px; padding: 8px 14px; }
+  #modeTabs button {
+    flex: 1;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.05);
+    color: #c7c1d2;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 14px;
+  }
+  #modeTabs button.on { background: #e8865a; color: #fff; border-color: #e8865a; }
+
+  /* ---------- 悬浮模式：宠物飘在“别的 App”上面 ---------- */
+  #floatView { position: relative; flex: 1; min-height: 62vh; overflow: hidden; border-radius: 18px; margin: 4px 10px 12px; }
+  #fakeApp {
+    position: absolute; inset: 0;
+    background: #fff;
+    color: #3a352f;
+    padding: 14px;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  #fakeApp .fa-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+  #fakeApp .fa-head .av { width: 36px; height: 36px; border-radius: 50%; background: #e8865a; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+  #fakeApp .fa-head b { display: block; font-size: 15px; }
+  #fakeApp .fa-head span { font-size: 11px; color: #8a8177; }
+  .fa-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f2ede4; }
+  .fa-item .ic { width: 34px; height: 34px; border-radius: 10px; background: #f4efe7; display: flex; align-items: center; justify-content: center; flex: none; }
+  .fa-item p { font-size: 12.5px; color: #8a8177; }
+  .fa-item b { display: block; font-size: 14px; color: #3a352f; }
+  #floatTip { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(20,22,38,.85); color: #fff; font-size: 11.5px; padding: 6px 12px; border-radius: 10px; z-index: 5; white-space: nowrap; }
+
+  #pet {
+    position: absolute;
+    right: 14px; bottom: 18px;
+    width: 62px; height: 62px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    background: radial-gradient(circle, #ffd6a5 0%, #f2a65a 100%);
+    border-radius: 50%;
+    box-shadow: 0 8px 22px rgba(0,0,0,.4);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    z-index: 8;
+    animation: bob 2.8s ease-in-out infinite;
+    transition: transform .2s;
+  }
+  #pet:active { cursor: grabbing; transform: scale(1.08); }
+  @keyframes bob { 50% { transform: translateY(-5px); } }
+  #bubble {
+    position: absolute;
+    bottom: 74px; right: -20px;
+    max-width: 210px;
+    background: #fff;
+    color: #3a352f;
+    border-radius: 14px;
+    padding: 10px 13px;
+    font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    animation: pop .3s ease;
+  }
+  #bubble::after {
+    content: ""; position: absolute; bottom: -7px; right: 26px;
+    border-left: 8px solid transparent; border-right: 8px solid transparent;
+    border-top: 8px solid #fff;
+  }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } }
+
+  /* ---------- 桌面小组件模式 ---------- */
+  #widgetView { flex: 1; margin: 4px 10px 12px; border-radius: 18px; overflow: hidden; position: relative; }
+  #homescreen {
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, #4a5b8a 0%, #2c3558 60%, #1d2340 100%);
+    padding: 20px 16px;
+    display: flex; flex-direction: column;
+  }
+  #clock { font-size: 40px; font-weight: 300; text-align: center; letter-spacing: 1px; }
+  #dateLine { text-align: center; font-size: 12px; opacity: .8; margin-bottom: 18px; }
+  #icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 10px; justify-items: center; margin-bottom: 22px; }
+  .icon { width: 46px; height: 46px; border-radius: 13px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  #widget {
+    margin-top: auto;
+    background: linear-gradient(135deg, #ffd6a5, #ffb26b);
+    color: #4a3520;
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .w-head { display: flex; align-items: center; gap: 10px; }
+  .w-head .wp { font-size: 34px; }
+  .w-head b { display: block; font-size: 16px; }
+  .w-head span { font-size: 11.5px; opacity: .75; }
+  .w-time { margin-left: auto; font-size: 12px; opacity: .75; }
+  .w-note {
+    background: rgba(255,255,255,.55);
+    border-radius: 12px;
+    padding: 9px 12px;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  #wOpen {
+    width: 100%;
+    border: 0;
+    background: #4a3520;
+    color: #ffe9d2;
+    border-radius: 12px;
+    padding: 11px;
+    font-size: 14px;
+  }
+  #widgetTip { text-align: center; font-size: 11px; opacity: .7; margin-top: 10px; }
+
+  /* ---------- 聊天面板 ---------- */
+  #chatPanel {
+    position: absolute; inset: 0;
+    background: #191d30;
+    display: flex; flex-direction: column;
+    z-index: 20;
+    animation: slide .25s ease;
+  }
+  #chatPanel[hidden] { display: none; }
+  @keyframes slide { from { transform: translateY(40px); opacity: 0; } }
+  .cp-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px;
+    background: #232842;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .cp-head .wp { font-size: 30px; }
+  .cp-head b { font-size: 16px; }
+  .cp-head span { font-size: 11.5px; color: #a49faf; }
+  .cp-head button {
+    margin-left: auto;
+    border: 0; background: rgba(255,255,255,.1); color: #fff;
+    width: 30px; height: 30px; border-radius: 50%; font-size: 15px;
+  }
+  #cpLog { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+  .cp-line { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.55; word-break: break-word; }
+  .cp-line.them { align-self: flex-start; background: #3a4063; border-bottom-left-radius: 4px; }
+  .cp-line.me { align-self: flex-end; background: #e8865a; color: #fff; border-bottom-right-radius: 4px; }
+  .cp-line.typing { align-self: flex-start; color: #a49faf; font-style: italic; background: transparent; }
+  .cp-composer { display: flex; gap: 8px; padding: 10px 12px 16px; }
+  .cp-composer input {
+    flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+    color: #fff; border-radius: 12px; padding: 11px 13px; font-size: 14px; outline: none;
+  }
+  .cp-composer button { background: #e8865a; color: #fff; border: 0; border-radius: 12px; padding: 0 20px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar"><b>📱 手机陪伴 · 演示</b><span style="font-size:11px;opacity:.7">可以发到手机上打开试试</span></div>
+  <div id="modeTabs">
+    <button data-mode="float" class="on">悬浮模式（安卓）</button>
+    <button data-mode="widget">桌面小组件（iOS）</button>
+  </div>
+
+  <!-- 悬浮模式：宠物盖在别的应用上 -->
+  <div id="floatView">
+    <div id="floatTip">试试把 Ta 拖到屏幕别的地方 👆</div>
+    <div id="fakeApp">
+      <div class="fa-head"><div class="av">张</div><div><b>家庭群</b><span>昨天</span></div></div>
+      <div class="fa-item"><div class="ic">📋</div><div><b>体检报告.pdf</b><p>爸爸发来了一份文件</p></div></div>
+      <div class="fa-item"><div class="ic">📷</div><div><b>中午的菜</b><p>看起来很好吃！</p></div></div>
+      <div class="fa-item"><div class="ic">🏥</div><div><b>预约提醒</b><p>周三上午 9:00 复诊</p></div></div>
+    </div>
+    <div id="pet" title="点我聊天">🐱
+      <div id="bubble" hidden></div>
+    </div>
+  </div>
+
+  <!-- 桌面小组件模式 -->
+  <div id="widgetView" hidden>
+    <div id="homescreen">
+      <div id="clock">12:00</div>
+      <div id="dateLine">8月16日 星期六</div>
+      <div id="icons">
+        <span class="icon">💬</span><span class="icon">📸</span><span class="icon">🎵</span><span class="icon">📅</span>
+        <span class="icon">🧭</span><span class="icon">🗺️</span><span class="icon">📮</span><span class="icon">⚙️</span>
+      </div>
+      <div id="widget">
+        <div class="w-head">
+          <span class="wp">🐱</span>
+          <div><b>小满</b><span>你的陪伴管家</span></div>
+          <span class="w-time" id="wTime">12:00</span>
+        </div>
+        <div class="w-note">📌 Ta 记得：你喜欢喝绿茶，血压 130/85</div>
+        <button id="wOpen">和 Ta 说话</button>
+        <p id="widgetTip">在真实 iPhone 上，这就是主屏幕小组件的样子</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 聊天面板 -->
+  <div id="chatPanel" hidden>
+    <div class="cp-head">
+      <span class="wp">🐱</span>
+      <div><b>小满</b><span>在线 · 记得你的一切</span></div>
+      <button id="cpClose">×</button>
+    </div>
+    <div id="cpLog"></div>
+    <div class="cp-composer">
+      <input id="cpInput" placeholder="跟 Ta 说点什么…">
+      <button id="cpSend">发送</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============ 悬浮宠物（可拖动） ============ */
+const pet = document.getElementById('pet');
+const bubble = document.getElementById('bubble');
+let drag = null;
+
+pet.addEventListener('pointerdown', e => {
+  drag = { x: e.clientX - pet.offsetLeft, y: e.clientY - pet.offsetTop };
+  pet.setPointerCapture(e.pointerId);
+});
+pet.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const view = document.getElementById('floatView').getBoundingClientRect();
+  let left = e.clientX - drag.x - view.left;
+  let top = e.clientY - drag.y - view.top;
+  left = Math.max(4, Math.min(view.width - pet.offsetWidth - 4, left));
+  top = Math.max(30, Math.min(view.height - pet.offsetHeight - 8, top));
+  pet.style.left = left + 'px';
+  pet.style.top = top + 'px';
+  pet.style.right = 'auto';
+  pet.style.bottom = 'auto';
+});
+pet.addEventListener('pointerup', () => { drag = null; });
+
+/* ============ 主动说话的气泡 ============ */
+const LINES = [
+  '该吃药啦 💊',
+  '记得多喝水哦 💧',
+  '想你啦～今天过得好吗？',
+  '你说过喜欢喝绿茶，我也泡了一杯 🍵',
+  '早点休息，别熬夜哦 🌙'
+];
+function showBubble() {
+  const h = new Date().getHours();
+  let text = LINES[Math.floor(Math.random() * LINES.length)];
+  if ([8, 12, 18].indexOf(h) >= 0) text = '该吃药啦 💊';
+  bubble.textContent = text;
+  bubble.hidden = false;
+  clearTimeout(showBubble._t);
+  showBubble._t = setTimeout(() => { bubble.hidden = true; }, 4200);
+}
+pet.addEventListener('click', e => {
+  if (drag) return;
+  openChat();
+});
+setInterval(showBubble, 9000);
+setTimeout(showBubble, 2500);
+
+/* ============ 小组件时钟 ============ */
+function tick() {
+  const d = new Date();
+  const hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  document.getElementById('clock').textContent = hm;
+  document.getElementById('wTime').textContent = hm;
+}
+setInterval(tick, 1000);
+tick();
+
+/* ============ 模式切换 ============ */
+document.querySelectorAll('#modeTabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#modeTabs button').forEach(b => b.classList.toggle('on', b === btn));
+    document.getElementById('floatView').hidden = btn.dataset.mode !== 'float';
+    document.getElementById('widgetView').hidden = btn.dataset.mode !== 'widget';
+  });
+});
+
+/* ============ 聊天 ============ */
+const log = document.getElementById('cpLog');
+let busy = false;
+
+function appendLine(who, text) {
+  const d = document.createElement('div');
+  d.className = 'cp-line ' + who;
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+
+function replyFor(text) {
+  if (/药/.test(text)) return '到点啦，记得吃药哦。吃完跟我说一声，我帮你记着 📝';
+  if (/绿茶|茶/.test(text)) return '我记得你喜欢喝绿茶——我今天也泡了一杯 🍵';
+  if (/喜欢/.test(text)) return '好～你说的话我都记着，写在墙上啦 📌';
+  if (/难过|累|心情/.test(text)) return '我在呢。过来，先给你一个抱抱 🫂';
+  if (/你是谁/.test(text)) return '我是小满，你的陪伴管家。可以住在你的桌面上，也可以住在小组件里 🐱';
+  const lines = ['嗯嗯，我在听', '然后呢？我想听你继续说', '好呀，那我们一起'];
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
+function openChat() {
+  document.getElementById('chatPanel').hidden = false;
+  if (!log.children.length) {
+    appendLine('them', '你来啦～我在你手机里等着你呢 🐱');
+  }
+  document.getElementById('cpInput').focus();
+}
+
+async function send(raw) {
+  const text = raw.trim();
+  if (!text || busy) return;
+  busy = true;
+  appendLine('me', text);
+  const t = appendLine('them', '正在输入…');
+  await new Promise(r => setTimeout(r, 700 + Math.random() * 700));
+  t.remove();
+  appendLine('them', replyFor(text));
+  busy = false;
+}
+
+document.getElementById('cpClose').addEventListener('click', () => {
+  document.getElementById('chatPanel').hidden = true;
+});
+document.getElementById('cpSend').addEventListener('click', () => {
+  const v = document.getElementById('cpInput').value;
+  document.getElementById('cpInput').value = '';
+  send(v);
+});
+document.getElementById('cpInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = document.getElementById('cpInput').value;
+    document.getElementById('cpInput').value = '';
+    send(v);
+  }
+});
+document.getElementById('wOpen').addEventListener('click', openChat);
+</script>
+</body>
+</html>

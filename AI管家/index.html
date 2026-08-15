@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 管家 · 全年龄家庭助手</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <span class="avatar">🏠</span>
+      <div>
+        <h1 id="butlerNameH">小管家</h1>
+        <p class="greet" id="greetLine">记着家里的每一件小事</p>
+      </div>
+    </div>
+    <div>
+      <button class="icon-btn" id="bigFontBtn">大字</button>
+      <button class="icon-btn" id="settingsBtn">设置</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="chat" class="active">💬 聊天</button>
+    <button data-tab="meds">💊 吃药提醒</button>
+    <button data-tab="memory">📖 记忆本</button>
+  </nav>
+
+  <main>
+    <section class="panel active" data-panel="chat">
+      <div id="messages"></div>
+      <div id="chips"></div>
+      <div class="composer">
+        <input id="chatInput" type="text" placeholder="跟管家说点什么…" autocomplete="off">
+        <button id="sendBtn">发送</button>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="meds">
+      <div id="nextDose"></div>
+      <button class="btn-ghost" id="addMedBtn" style="width:100%">＋ 添加药品</button>
+      <div id="medForm" hidden>
+        <label>药名</label>
+        <input id="medName" placeholder="如：阿司匹林">
+        <label>每次用量</label>
+        <input id="medDose" placeholder="如：1片 / 1袋">
+        <label>服用时间（可多个，用逗号分开）</label>
+        <input id="medTimes" placeholder="如：08:00, 12:30, 18:30">
+        <label>备注（可选）</label>
+        <input id="medNote" placeholder="如：饭后吃">
+        <div class="form-actions">
+          <button class="btn-primary" id="medSaveBtn" style="flex:1">保存</button>
+          <button class="btn-ghost" id="medCancelBtn" style="flex:1">取消</button>
+        </div>
+      </div>
+      <div id="medList"></div>
+    </section>
+
+    <section class="panel" data-panel="memory">
+      <div id="vitals"></div>
+      <button class="btn-ghost" id="addFactBtn" style="width:100%">＋ 手动记一笔</button>
+      <input id="factInput" type="text" placeholder="比如：爸爸喜欢饭后散步" hidden>
+      <div id="factList"></div>
+    </section>
+  </main>
+
+  <div id="reminderBanner" hidden>
+    <h4>💊 该吃药啦</h4>
+    <p id="reminderText"></p>
+    <div class="banner-actions">
+      <button id="reminderOkBtn">我吃过了</button>
+      <button id="reminderLaterBtn">稍后再说</button>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="settingsModal">
+    <div class="modal">
+      <h2>设置</h2>
+      <p class="hint">这里配置管家和家人的信息。数据只保存在这台电脑的浏览器里，不会上传。</p>
+      <label>家人称呼</label>
+      <input id="setFamily" placeholder="如：爸爸 / 王叔叔 / 老妈">
+      <label>家人生日（可选）</label>
+      <input id="setBirthday" type="date">
+      <label>管家名字</label>
+      <input id="setButler">
+      <label>管家性格</label>
+      <textarea id="setPersona" rows="2"></textarea>
+      <label>回复方式</label>
+      <div class="radio-row">
+        <label><input type="radio" name="apiMode" id="apiModeMock" checked> 模拟模式（离线可用）</label>
+        <label><input type="radio" name="apiMode" id="apiModeApi"> 真实 AI（需填接口）</label>
+      </div>
+      <div id="apiFields" hidden>
+        <label>接口地址</label>
+        <input id="apiBase" placeholder="https://api.openai.com/v1">
+        <label>模型名称</label>
+        <input id="apiModel" placeholder="gpt-4o-mini">
+        <label>密钥（只存在本机）</label>
+        <input id="apiKey" type="password" placeholder="sk-...">
+        <p class="hint">支持 OpenAI 兼容接口：DeepSeek（https://api.deepseek.com/v1，模型 deepseek-chat）、智谱（https://open.bigmodel.cn/api/paas/v4，模型 glm-4-flash）、Kimi（https://api.moonshot.cn/v1）等。推荐双击「启动.bat」后使用，可避开浏览器限制。</p>
+      </div>
+      <button class="btn-ghost" id="notifyBtn" style="margin-top:12px">🔔 开启系统通知（可选）</button>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="closeSettings">取消</button>
+        <button class="btn-primary" id="saveSettings">保存</button>
+      </div>
+      <p class="hint danger"><a href="#" id="clearData">清除全部数据（重新开始）</a></p>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

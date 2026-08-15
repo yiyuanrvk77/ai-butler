@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>演示：把管家嵌进任意网站</title>
+<style>
+  body { margin: 0; font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; color: #3a352f; background: #faf7f2; }
+  header { background: linear-gradient(135deg, #4f8f8a, #3f7671); color: #fff; padding: 40px 20px; text-align: center; }
+  header h1 { margin: 0 0 8px; font-size: 26px; }
+  header p { margin: 0; opacity: .9; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 18px 90px; }
+  .card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(90,70,40,.08); }
+  .card h2 { margin: 0 0 8px; font-size: 18px; }
+  pre { background: #f4efe7; border-radius: 10px; padding: 14px; overflow-x: auto; font-size: 13px; }
+  code { background: #f4efe7; border-radius: 4px; padding: 2px 6px; }
+  .tip { color: #8a8177; font-size: 13px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>阳光社区服务中心（演示页）</h1>
+    <p>这只是一个普通网页——右下角那个管家，是用一行代码嵌进来的</p>
+  </header>
+  <main>
+    <div class="card">
+      <h2>这是什么</h2>
+      <p>任何一个网站、社区、App 的网页版，都可以加上自己的 AI 管家。访客跟管家聊过之后，管家会记住 ta 喜欢什么、量过什么血压，下次再来还记得。</p>
+    </div>
+    <div class="card">
+      <h2>嵌入只需要一行</h2>
+      <pre>&lt;script src="butler-widget.js" data-butler-name="小管家" data-color="#4f8f8a"&gt;&lt;/script&gt;</pre>
+      <p class="tip">把 butler-widget.js 放到你的网站目录里，改一下管家名字和颜色即可。记忆自动存在每位访客自己的浏览器里。</p>
+    </div>
+    <div class="card">
+      <h2>试着跟它聊聊</h2>
+      <p>点右下角 🏠 打开管家，试着说：<code>我喜欢喝绿茶</code>、<code>我血压 130/85</code>、<code>你记得我什么？</code>，然后切到「记忆」标签看看它记住了什么。</p>
+    </div>
+  </main>
+
+  <!-- 嵌入管家（一行代码） -->
+  <script src="butler-widget.js" data-butler-name="小管家" data-color="#4f8f8a"></script>
+</body>
+</html>
